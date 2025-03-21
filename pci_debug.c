@@ -636,7 +636,7 @@ int fill_mem(device_t *dev, char *cmd)
 		}
 	} else {
 		status = sscanf(cmd, "%*c%d %x %x %x %x", &width, &addr, &d32, &len, &inc);
-		if ((status != 3) && (status != 4)) {
+		if ((status != 4) && (status != 5)) {
 			printf("Syntax error (use ? for help)\n");
 			/* Don't break out of command processing loop */
 			return 0;
