@@ -9,7 +9,7 @@ Other lines => Commands
 
 Example:
 ```sh
-pci_debug -q -v 0 -b 2 -s b5:00.0 -e $'bar2\nd32 0x21f02a000 4\nd32 0x21f02a000 8'
+pci_debug -q -v 0 -b 2 -s b5:00.0 -r $'bar2\nd32 0x21f02a000 4\nd32 0x21f02a000 8'
 ```
 Output:
 ```sh
