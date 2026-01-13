@@ -1,6 +1,26 @@
 # pcie_debug
 Command line tool to Read/Write to PCIe BARx memory space
 
+# Command region structure
+
+The option -r allow to provide a commands buffer to pci_debug from cmdline.
+first line => Must be the BAR concerned by the command file. Must be compliant with the -b option
+Other lines => Commands
+
+Example:
+```sh
+pci_debug -q -v 0 -b 2 -s b5:00.0 -e $'bar2\nd32 0x21f02a000 4\nd32 0x21f02a000 8'
+```
+Output:
+```sh
+
+1F02A000: E70ECE10
+
+
+1F02A000: E70ECE10 01000FF0
+
+```
+
 # Command file structure
 
 The option -f allow to provide a commands file to pci_debug. The commands file will be executed before give you the hand on the PCI> prompt (if -q option is not).
