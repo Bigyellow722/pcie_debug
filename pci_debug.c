@@ -113,6 +113,13 @@ static void write_be32(device_t *dev, unsigned int addr, unsigned int data);
 
 static unsigned int read_be32(device_t *dev, unsigned int addr);
 
+static void write_le64(device_t *dev, unsigned int addr, unsigned long long data);
+
+static unsigned long long read_le64(device_t *dev, unsigned int addr);
+
+static void write_be64(device_t *dev, unsigned long long addr, unsigned long long data);
+
+static unsigned long long read_be64(device_t *dev, unsigned int addr);
 /* Usage */
 static void show_usage() {
   printf("\nUsage: pci_debug -s <device>\n"
@@ -471,8 +478,9 @@ int display_mem(device_t *dev, char *cmd) {
   unsigned char d8;
   unsigned short d16;
   unsigned int d32;
+  unsigned long long d64;
 
-  /* d, d8, d16, d32 */
+  /* d, d8, d16, d32 d64*/
   if (cmd[1] == ' ') {
     status = sscanf(cmd, "%*c %x %x", &addr, &len);
     if (status != 2) {
@@ -536,6 +544,20 @@ int display_mem(device_t *dev, char *cmd) {
     }
     printf("\n");
     break;
+  case 64:
+    for (i = 0; i < len; i += 8) {
+      if ((i % 16) == 0) {
+        printf("\n%.8X: ", addr + i);
+      }
+      if (big_endian == 0) {
+        d64 = read_le64(dev, addr + i);
+      } else {
+        d64 = read_be64(dev, addr + i);
+      }
+      printf("%.16llX ", d64);
+    }
+    printf("\n");
+    break;
   default:
     printf("Syntax error (use ? for help)\n");
     /* Don't break out of command processing loop */
@@ -552,8 +574,9 @@ int change_mem(device_t *dev, char *cmd) {
   unsigned char d8;
   unsigned short d16;
   unsigned int d32;
+  unsigned long long d64;
 
-  /* c, c8, c16, c32 */
+  /* c, c8, c16, c32 c64*/
   if (cmd[1] == ' ') {
     status = sscanf(cmd, "%*c %x %x", &addr, &d32);
     if (status != 2) {
@@ -562,12 +585,13 @@ int change_mem(device_t *dev, char *cmd) {
       return 0;
     }
   } else {
-    status = sscanf(cmd, "%*c%d %x %x", &width, &addr, &d32);
+    status = sscanf(cmd, "%*c%d %x %llx", &width, &addr, &d64);
     if (status != 3) {
       printf("Syntax error (use ? for help)\n");
       /* Don't break out of command processing loop */
       return 0;
     }
+    d32 = (unsigned int)d64;
   }
   if (addr > dev->size) {
     printf("Error: invalid address (maximum allowed is %.8X\n", dev->size);
@@ -591,6 +615,13 @@ int change_mem(device_t *dev, char *cmd) {
       write_le32(dev, addr, d32);
     } else {
       write_be32(dev, addr, d32);
+    }
+    break;
+  case 64:
+    if (big_endian == 0) {
+      write_le64(dev, addr, d64);
+    } else {
+      write_be64(dev, addr, d64);
     }
     break;
   default:
@@ -789,3 +820,37 @@ static unsigned int read_be32(device_t *dev, unsigned int addr) {
   }
   return data;
 }
+
+static void write_le64(device_t *dev, unsigned int addr, unsigned long long data) {
+  if (__BYTE_ORDER != __LITTLE_ENDIAN) {
+    data = bswap_64(data);
+  }
+  *(volatile unsigned long long *)(dev->addr + addr) = data;
+  msync((void *)(dev->addr + addr), 8, MS_SYNC | MS_INVALIDATE);
+}
+
+static unsigned long long read_le64(device_t *dev, unsigned int addr) {
+  unsigned long long data = *(volatile unsigned long long *)(dev->addr + addr);
+  if (__BYTE_ORDER != __LITTLE_ENDIAN) {
+    data = bswap_64(data);
+  }
+  return data;
+}
+
+
+static void write_be64(device_t *dev, unsigned long long addr, unsigned long long data) {
+  if (__BYTE_ORDER == __LITTLE_ENDIAN) {
+    data = bswap_64(data);
+  }
+  *(volatile unsigned long long *)(dev->addr + addr) = data;
+  msync((void *)(dev->addr + addr), 8, MS_SYNC | MS_INVALIDATE);
+}
+
+static unsigned long long read_be64(device_t *dev, unsigned int addr) {
+  unsigned long long data = *(volatile unsigned long long*)(dev->addr + addr);
+  if (__BYTE_ORDER == __LITTLE_ENDIAN) {
+    data = bswap_64(data);
+  }
+  return data;
+}
+
